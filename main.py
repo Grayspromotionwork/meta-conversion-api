@@ -4,6 +4,7 @@ import requests
 from fastapi import FastAPI
 from pydantic import BaseModel
 import logging
+import time
 
 # Налаштування логування
 logging.basicConfig(filename='events.log', level=logging.INFO)
@@ -79,3 +80,32 @@ async def send_event(event: Event):
 
     return {"status": "success", "message": message}
 
+
+
+
+
+class BitrixDeal(BaseModel):
+    id: str
+    title: str
+    stage_id: str
+    contact_phone: str = None
+    contact_email: str = None
+
+@app.post("/bitrix-webhook")
+async def bitrix_webhook(deal: BitrixDeal):
+    if deal.stage_id == "WON":
+        event_data = {
+            "event_name": "LeadConverted",
+            "event_time": int(time.time()),
+            "event_source_url": "https://orangepark.ua/test-page/",
+            "user_data": {
+                "ph": [deal.contact_phone] if deal.contact_phone else [],
+                "em": [deal.contact_email] if deal.contact_email else []
+            }
+        }
+        try:
+            requests.post("https://meta-conversion-api.onrender.com/send-event", json=event_data)
+            return {"status": "✅ Подія надіслана в Meta"}
+        except Exception as e:
+            return {"status": "❌ Помилка відправки", "error": str(e)}
+    return {"status": f"⏭️ Стадія {deal.stage_id} — пропущено"}
