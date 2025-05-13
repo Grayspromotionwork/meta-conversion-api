@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: meta-conversion-api
+    runtime: python
+    buildCommand: ""
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: PIXEL_ID
+        sync: false
+      - key: ACCESS_TOKEN
+        sync: false
