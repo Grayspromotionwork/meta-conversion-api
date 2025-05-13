@@ -1,61 +1,81 @@
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
+import hashlib
+import json
 import requests
-import os
+from fastapi import FastAPI
+from pydantic import BaseModel
+import logging
+
+# Налаштування логування
+logging.basicConfig(filename='events.log', level=logging.INFO)
 
 app = FastAPI()
 
-PIXEL_ID = os.getenv("PIXEL_ID")
-ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-API_VERSION = "v18.0"
+# Telegram Bot Token і Chat ID
+TELEGRAM_TOKEN = "7718904784:AAHSUenjnRNVMiTsdGocrzUqpqQ5cxXvNhU"
+CHAT_ID = "5844883605"
 
-class EventPayload(BaseModel):
-    email: str = None
-    phone: str = None
-    value: float = 0.0
-    currency: str = "UAH"
-    event_url: str = None
-    event_name: str = "Lead"
-    test_event_code: str = None
+# Функція для хешування email і телефону
+def hash_user_data(user_data):
+    if user_data.get("em"):
+        user_data["em"] = [hashlib.sha256(email.encode('utf-8')).hexdigest() for email in user_data["em"]]
+    if user_data.get("ph"):
+        user_data["ph"] = [hashlib.sha256(phone.encode('utf-8')).hexdigest() for phone in user_data["ph"]]
+    return user_data
 
-def hash_data(data: str) -> str:
-    import hashlib
-    return hashlib.sha256(data.strip().lower().encode()).hexdigest()
+# Функція для надсилання повідомлень у Telegram
+def send_telegram_message(chat_id, message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message
+    }
+    response = requests.post(url, data=payload)
+    return response.json()
 
-@app.post("/send_event")
-async def send_event(payload: EventPayload, request: Request):
-    client_ip = request.client.host
-    user_agent = request.headers.get("user-agent")
+# Модель для події
+class Event(BaseModel):
+    event_name: str
+    event_time: int
+    event_source_url: str
+    user_data: dict
 
-    user_data = {
-        "em": [hash_data(payload.email)] if payload.email else [],
-        "ph": [hash_data(payload.phone)] if payload.phone else [],
-        "client_ip_address": client_ip,
-        "client_user_agent": user_agent,
+# Обробка події
+@app.post("/send-event")
+async def send_event(event: Event):
+    # Логуємо подію
+    logging.info(f"Received event: {event.dict()}")
+
+    # Хешуємо дані користувача
+    event.user_data = hash_user_data(event.user_data)
+
+    # Формуємо запит до Meta API
+    meta_data = {
+        "data": [
+            {
+                "event_name": event.event_name,
+                "event_time": event.event_time,
+                "event_source_url": event.event_source_url,
+                "user_data": event.user_data
+            }
+        ]
     }
 
-    event = {
-        "event_name": payload.event_name,
-        "event_time": int(__import__("time").time()),
-        "event_source_url": payload.event_url or "https://yourdomain.com",
-        "user_data": user_data,
-        "custom_data": {
-            "value": payload.value,
-            "currency": payload.currency
-        }
+    # Відправляємо дані до Meta API
+    meta_url = "https://graph.facebook.com/v12.0/2246561465740246/events"
+    meta_params = {
+        "access_token": "EAAErActFoO0BO4rshqMiHhZCRvR7WIbHEodZBEwkyZBg57YpmcWTZBgDU72smZBj7QSEJ9zU22GwegC9W4klCzqP9YZC1caxEbzNI2nGlYAmuMURkj0Ch9F4TThv1sVNpZCcrjCxyAJMjnEeZBrwksDVpQjcIuoJFbZCyZA8BgRvQkeAA7Tu0rMZAwB82E5UmeK2mtnngZDZD"
     }
 
-    params = {
-        "access_token": ACCESS_TOKEN
-    }
+    meta_response = requests.post(meta_url, json=meta_data, params=meta_params)
 
-    if payload.test_event_code:
-        event["test_event_code"] = payload.test_event_code
+    # Перевірка успішності запиту до Meta
+    if meta_response.status_code == 200:
+        message = f"Event sent to Meta: {event.event_name}"
+    else:
+        message = f"Failed to send event to Meta: {event.event_name}"
 
-    response = requests.post(
-        f"https://graph.facebook.com/{API_VERSION}/{PIXEL_ID}/events",
-        params=params,
-        json={"data": [event]}
-    )
+    # Відправляємо повідомлення в Telegram
+    send_telegram_message(CHAT_ID, message)
 
-    return {"status": "sent", "facebook_response": response.json()}
+    return {"status": "success", "message": message}
+
