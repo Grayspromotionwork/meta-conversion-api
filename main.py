@@ -10,17 +10,14 @@ import time
 app = FastAPI()
 
 
-# app/main.py - debug
-from fastapi import FastAPI, Request
-import json
-
+# Повторно ініціалізуємо FastAPI після ресету
 
 @app.post("/bitrix-debug")
 async def bitrix_debug(request: Request):
     data = await request.json()
-    print("🔍 Отримано запит від Bitrix24:")
+    print("🔍 Bitrix DEBUG:")
     print(json.dumps(data, indent=2, ensure_ascii=False))
-    return {"status": "received", "data": data}
+    return {"status": "ok", "received": data}
 
 
 
