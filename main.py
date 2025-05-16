@@ -12,7 +12,7 @@ ACCESS_TOKEN = "EAAErActFoO0BO4rshqMiHhZCRvR7WIbHEodZBEwkyZBg57YpmcWTZBgDU72smZB
 TEST_EVENT_CODE = "TEST12345"  # або None для продакшн
 
 TELEGRAM_TOKEN = "7718904784:AAHSUenjnRNVMiTsdGocrzUqpqQ5cxXvNhU"
-TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"  # встав сюди свій чат ID
+TELEGRAM_CHAT_ID = "5844883605"  # встав сюди свій чат ID
 
 def hash_sha256(value: str | None):
     if value and isinstance(value, str):
