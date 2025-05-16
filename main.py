@@ -1,41 +1,63 @@
 from fastapi import FastAPI, Request
-from typing import Optional
-import json
+from fastapi.responses import JSONResponse
+import hashlib
+import time
+import httpx
+import os
 
 app = FastAPI()
 
-# ✅ Для JSON з Bitrix24
-@app.post("/bitrix-debug")
-async def bitrix_debug(request: Request):
-    try:
-        data = await request.json()
-    except Exception:
-        data = {"error": "Invalid JSON"}
-    print("🔍 Bitrix DEBUG:")
-    print(json.dumps(data, indent=2, ensure_ascii=False))
-    return {"status": "ok", "received": data}
+PIXEL_ID = "2246561465740246"
+ACCESS_TOKEN = "EAAErActFoO0BO4rshqMiHhZCRvR7WIbHEodZBEwkyZBg57YpmcWTZBgDU72smZBj7QSEJ9zU22GwegC9W4klCzqP9YZC1caxEbzNI2nGlYAmuMURkj0Ch9F4TThv1sVNpZCcrjCxyAJMjnEeZBrwksDVpQjcIuoJFbZCyZA8BgRvQkeAA7Tu0rMZAwB82E5UmeK2mtnngZDZD"
+TEST_EVENT_CODE = "TEST12345"  # або None для продакшн
 
-# ✅ Для GET/POST з query-параметрами
+TELEGRAM_TOKEN = "7718904784:AAHSUenjnRNVMiTsdGocrzUqpqQ5cxXvNhU"
+TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"  # встав сюди свій чат ID
+
+def hash_sha256(value: str | None):
+    if value and isinstance(value, str):
+        return hashlib.sha256(value.strip().lower().encode()).hexdigest()
+    return None
+
+async def send_telegram_message(text: str):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
+    async with httpx.AsyncClient() as client:
+        await client.post(url, json=payload)
+
 @app.post("/bitrix-webhook")
-async def bitrix_webhook(
-    id: Optional[str] = None,
-    title: Optional[str] = None,
-    status_id: Optional[str] = None,
-    name: Optional[str] = None,
-    last_name: Optional[str] = None,
-    phone: Optional[str] = None,
-    email: Optional[str] = None
-):
-    data = {
-    "id": id.strip() if id else None,
-    "title": title.strip() if title else None,
-    "status_id": status_id.strip() if status_id else None,
-    "name": name.strip() if name else None,
-    "last_name": last_name.strip() if last_name else None,
-    "phone": phone.strip() if phone else None,
-    "email": email.strip() if email else None
-}
+async def bitrix_webhook(request: Request):
+    params = dict(request.query_params)
+    await send_telegram_message(f"Bitrix WEBHOOK received:\n{params}")
 
-    print("🔔 Bitrix WEBHOOK (query params):")
-    print(json.dumps(data, indent=2, ensure_ascii=False))
-    return {"status": "ok", "received": data}
+    email = params.get("email")
+    phone = params.get("phone")
+    first_name = params.get("name")
+
+    user_data = {
+        "em": [hash_sha256(email)] if email else [],
+        "ph": [hash_sha256(phone)] if phone else [],
+        "fn": [hash_sha256(first_name)] if first_name else [],
+    }
+    user_data = {k: v for k, v in user_data.items() if v}
+
+    event = {
+        "event_name": "Lead",
+        "event_time": int(time.time()),
+        "event_source_url": "https://orangepark.ua/test-page/",
+        "action_source": "website",
+        "user_data": user_data
+    }
+
+    payload = {"data": [event]}
+    if TEST_EVENT_CODE:
+        payload["test_event_code"] = TEST_EVENT_CODE
+
+    url = f"https://graph.facebook.com/v18.0/{PIXEL_ID}/events?access_token={ACCESS_TOKEN}"
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=payload)
+        meta_resp = response.json()
+
+    await send_telegram_message(f"Meta API response:\nStatus: {response.status_code}\nResponse: {meta_resp}")
+
+    return JSONResponse(content={"status": "ok", "meta_response": meta_resp})
