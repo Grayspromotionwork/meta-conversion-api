@@ -1,10 +1,30 @@
 import hashlib
 import json
 import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import logging
 import time
+
+
+app = FastAPI()
+
+
+# app/main.py - debug
+from fastapi import FastAPI, Request
+import json
+
+
+@app.post("/bitrix-debug")
+async def bitrix_debug(request: Request):
+    data = await request.json()
+    print("🔍 Отримано запит від Bitrix24:")
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+    return {"status": "received", "data": data}
+
+
+
+
 
 # Налаштування логування
 logging.basicConfig(filename='events.log', level=logging.INFO)
