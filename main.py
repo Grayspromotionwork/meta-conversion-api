@@ -8,6 +8,9 @@ from facebook_business.adobjects.serverside.user_data import UserData
 from facebook_business.adobjects.serverside.custom_data import CustomData
 from facebook_business.adobjects.serverside.event import Event
 from facebook_business.adobjects.serverside.event_request import EventRequest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -27,26 +30,26 @@ async def handle_bitrix_webhook(request: Request):
     email = query.get("email")
     phone = query.get("phone")
     name = query.get("name", "")
+    country = query.get("country", "UA")  # можна оновити за потреби
+    lead_id = query.get("id", None)
 
-    # Логування у Telegram
-    message = f"Bitrix WEBHOOK:\nEmail: {email}\nPhone: {phone}\nName: {name}"
+    # 1. Логування в Telegram
+    message = f"Bitrix24 WEBHOOK:\nEmail: {email}\nPhone: {phone}\nName: {name}\nLead ID: {lead_id}"
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         await httpx.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             data={"chat_id": TELEGRAM_CHAT_ID, "text": message}
         )
 
-    # Хешування
-    hashed_email = hash_data(email) if email else None
-    hashed_phone = hash_data(phone) if phone else None
-
-    # Подія Meta
+    # 2. Формування Meta Events
     event_time = int(time.time())
+
     user_data = UserData(
-        emails=[hashed_email] if hashed_email else [],
-        phones=[hashed_phone] if hashed_phone else [],
-        first_names=[],
-        country_codes=[],
+        emails=[hash_data(email)] if email else [],
+        phones=[hash_data(phone)] if phone else [],
+        first_names=[hash_data(name)] if name else [],
+        country_codes=[hash_data(country)],
+        lead_id=lead_id
     )
 
     custom_data = CustomData(
@@ -69,5 +72,11 @@ async def handle_bitrix_webhook(request: Request):
         pixel_id=PIXEL_ID
     )
 
+    # 3. Відправлення в Meta
     response = event_request.execute()
-    return {"status": "sent", "meta_response": response}
+
+    return {
+        "status": "sent",
+        "event_time": event_time,
+        "meta_response": response
+    }
