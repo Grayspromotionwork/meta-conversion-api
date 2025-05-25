@@ -9,6 +9,7 @@ from facebook_business.adobjects.serverside.custom_data import CustomData
 from facebook_business.adobjects.serverside.event import Event
 from facebook_business.adobjects.serverside.event_request import EventRequest
 from dotenv import load_dotenv
+import subprocess
 
 load_dotenv()
 
@@ -80,3 +81,16 @@ async def handle_bitrix_webhook(request: Request):
         "event_time": event_time,
         "meta_response": response
     }
+
+async def webhook(request: Request):
+    payload = await request.json()
+    
+    # Тут можна перевірити щось з payload, якщо потрібно
+
+    # Оновити код
+    subprocess.run(["git", "pull"], cwd="/home/ubuntu/fastapi-app")
+
+    # Перезапустити FastAPI-сервіс
+    subprocess.run(["sudo", "systemctl", "restart", "fastapi"])
+
+    return {"status": "updated"}
