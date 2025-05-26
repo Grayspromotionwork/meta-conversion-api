@@ -37,7 +37,8 @@ async def handle_bitrix_webhook(request: Request):
     # 1. Логування в Telegram
     message = f"Bitrix24 WEBHOOK:\nEmail: {email}\nPhone: {phone}\nName: {name}\nLead ID: {lead_id}"
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
-        await httpx.post(
+    async with httpx.AsyncClient() as client:
+        await client.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
             data={"chat_id": TELEGRAM_CHAT_ID, "text": message}
         )
