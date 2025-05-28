@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from facebook_business.api import FacebookAdsApi
+from facebook_business.adobjects.serverside.action_source import ActionSource
 from facebook_business.adobjects.serverside.user_data import UserData
 from facebook_business.adobjects.serverside.custom_data import CustomData
 from facebook_business.adobjects.serverside.event import Event
@@ -90,8 +91,9 @@ async def handle_bitrix_webhook(request: Request):
             event_time=event_time,
             user_data=user_data,
             custom_data=custom_data,
-            action_source="system_generated"
+            action_source=ActionSource.SYSTEM_GENERATED
         )
+
         event_request = EventRequest(events=[event], pixel_id=PIXEL_ID)
         response = event_request.execute()
 
