@@ -95,3 +95,7 @@ async def webhook(request: Request):
     subprocess.run(["sudo", "systemctl", "restart", "fastapi"])
 
     return {"status": "updated"}
+
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
