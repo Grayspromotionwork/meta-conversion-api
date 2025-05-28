@@ -11,7 +11,6 @@ from facebook_business.adobjects.serverside.custom_data import CustomData
 from facebook_business.adobjects.serverside.event import Event
 from facebook_business.adobjects.serverside.event_request import EventRequest
 
-
 load_dotenv()
 app = FastAPI()
 
