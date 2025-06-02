@@ -1,10 +1,9 @@
-# Meta Conversion API with FastAPI
+# FastAPI Health Monitor
 
-Send events from forms (e.g. Bitrix24) to Meta Ads using Conversions API.
+Цей проєкт додає моніторинг FastAPI-сервера з автоматичними Telegram-сповіщеннями у разі помилок.
 
-## Health Monitor
+## Файли
 
-- `monitor.sh` перевіряє `/ping` кожні 5 хв.
-- У разі недоступності — надсилає повідомлення у Telegram.
-- Запускається через `cron`.
-- Telegram-конфігурація зберігається в `.env.sh` (НЕ плутати з `.env`).
+- `.env.sh.example` — приклад з Telegram токеном і chat ID
+- `monitor.sh` — shell-скрипт, який перевіряє /ping і надсилає алерт у Telegram
+- `logs/monitor.log` — лог-файл із перевірками

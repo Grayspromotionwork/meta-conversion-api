@@ -1,20 +1,4 @@
-# Python
+.env
+*.pyc
 __pycache__/
-*.py[cod]
-*.pyo
-
-# Virtual environment
-venv/
-ENV/
-env/
-
-# IDEs
-.vscode/
-.idea/
-
-# System
-.DS_Store
-
-# Secrets
-.env
-.env
+logs/
